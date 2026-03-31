@@ -1,0 +1,42 @@
+{
+  "name": "edu-vulcan-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for the Polish EduVulcan student education portal — access grades, messages, and assignments",
+  "main": "dist/mcp-server.js",
+  "bin": {
+    "edu-vulcan-mcp": "dist/mcp-server.js"
+  },
+  "scripts": {
+    "start": "tsx test-index.ts",
+    "mcp": "tsx mcp-server.ts",
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/budzikt/edu-vulcan-mcp.git"
+  },
+  "keywords": ["mcp", "education", "vulcan", "poland", "grades", "school", "eduvulcan"],
+  "author": "budzikt",
+  "license": "ISC",
+  "engines": {
+    "node": ">=18"
+  },
+  "type": "commonjs",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "axios": "^1.14.0",
+    "axios-cookiejar-support": "^6.0.5",
+    "cheerio": "^1.2.0",
+    "dotenv": "^17.3.1",
+    "tough-cookie": "^6.0.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@types/tough-cookie": "^4.0.5",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2"
+  }
+}

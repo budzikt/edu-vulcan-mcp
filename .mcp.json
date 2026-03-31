@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "edu-vulcan-mcp": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "tsx",
+        "mcp-server.ts"
+      ],
+      "env": {
+        "VULCAN_ALIAS": "",
+        "VULCAN_PASSWORD": ""
+      }
+    }
+  }
+}
