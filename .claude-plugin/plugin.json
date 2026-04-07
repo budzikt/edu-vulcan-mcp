@@ -13,7 +13,7 @@
       "type": "string",
       "title": "EduVulcan Password",
       "description": "Your EduVulcan account password",
-      "sensitive": true
+      "sensitive": false
     }
   },
   "mcpServers": {
