@@ -10,7 +10,7 @@
       "name": "edu-vulcan-mcp",
       "source": "./",
       "description": "Access grades, messages, and assignments from the Polish EduVulcan student portal (uczen.eduvulcan.pl). Requires VULCAN_ALIAS and VULCAN_PASSWORD environment variables.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": {
         "name": "budzikt"
       }
