@@ -2,14 +2,13 @@
   "mcpServers": {
     "edu-vulcan-mcp": {
       "type": "stdio",
-      "command": "npx",
+      "command": "node",
       "args": [
-        "tsx",
-        "mcp-server.ts"
+        "dist/mcp-server.js"
       ],
       "env": {
-        "VULCAN_ALIAS": "",
-        "VULCAN_PASSWORD": ""
+        "VULCAN_ALIAS": "enter-your-alias-here",
+        "VULCAN_PASSWORD": "enter-your-password-here"
       }
     }
   }

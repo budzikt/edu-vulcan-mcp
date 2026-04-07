@@ -107,7 +107,10 @@ async function handleFederation(client, response) {
         const $form = $('form');
         const action = $form.attr('action');
         // If there's a form with wresult, it's a federation relay
-        if (action && html.includes('name="wresult"')) {
+        const hasWresultDoubleQuote = html.includes('name="wresult"');
+        const hasWresultSingleQuote = html.includes("name='wresult'");
+        console.error(`[DEBUG] handleFederation: action="${action}" hasWresult(double)=${hasWresultDoubleQuote} hasWresult(single)=${hasWresultSingleQuote}`);
+        if (action && (hasWresultDoubleQuote || hasWresultSingleQuote)) {
             const fields = extractHiddenFields(html);
             const targetUrl = action.startsWith('http') ? action : new URL(action, currentResponse.config.url).toString();
             currentResponse = await client.post(targetUrl, new URLSearchParams(fields).toString(), {
@@ -182,7 +185,8 @@ async function loginToPortal(alias, password, returnUrl) {
         const name = $row.find('.connected-account-name').text().trim();
         const url = $link.attr('href');
         if (url) {
-            accounts.push({ name, journalUrl: `https://eduvulcan.pl${url}` });
+            const studentName = name.replace(/\s*\([^)]+\)\s*$/, '').trim();
+            accounts.push({ name, studentName, journalUrl: `https://eduvulcan.pl${url}` });
         }
     });
     if (accounts.length === 0) {
@@ -224,7 +228,7 @@ function extractJournalSession(client, tenant, response) {
     const appKey = appKeyMatch ? appKeyMatch[1] : '';
     const appGuid = response.data.match(/appGuid:\s*['"]([^'"]+)['"]/i)?.[1];
     const xhrToken = response.data.match(/(?:token|requestVerificationToken):\s*['"]([^'"]+)['"]/i)?.[1];
-    return {
+    const result = {
         client,
         tenant,
         appKey,
@@ -232,6 +236,8 @@ function extractJournalSession(client, tenant, response) {
         xhrToken,
         baseUrl: `${urlObj.protocol}//${urlObj.host}/${tenant}`
     };
+    console.error(`[DEBUG] extractJournalSession: baseUrl="${result.baseUrl}" appKey="${appKey}" appGuid="${appGuid}" xhrToken="${xhrToken ? 'found' : 'MISSING'}"`);
+    return result;
 }
 /**
  * Atomic and stateless: performs full login internally to a specific journal/student account.
@@ -255,25 +261,31 @@ async function loginToJournal(alias, password, studentName) {
     // 4. Perform SSO Handoff
     const { client } = portal;
     let tenant = portal.tenant;
+    console.error(`[DEBUG] loginToJournal: starting SSO for account="${account.name}" url="${account.journalUrl}"`);
     let currentResponse = await client.get(account.journalUrl, {
         headers: { 'Referer': 'https://eduvulcan.pl/' }
     });
+    console.error(`[DEBUG] loginToJournal: initial response status=${currentResponse.status} url="${currentResponse.config.url}"`);
     while (currentResponse.status >= 300 && currentResponse.status < 400) {
         const location = currentResponse.headers.location;
         if (!location)
             break;
         const nextUrl = location.startsWith('http') ? location : new URL(location, currentResponse.config.url).toString();
+        console.error(`[DEBUG] loginToJournal: redirect → ${nextUrl}`);
         const tenantMatch = nextUrl.match(/https:\/\/uczen\.eduvulcan\.pl\/([^/]+)\//);
         if (tenantMatch)
             tenant = tenantMatch[1];
         currentResponse = await client.get(nextUrl, {
             headers: { 'Referer': currentResponse.config.url }
         });
+        console.error(`[DEBUG] loginToJournal: after redirect status=${currentResponse.status} url="${currentResponse.config.url}"`);
     }
     if (!tenant)
         throw new Error('Failed to extract tenant from redirect chain.');
+    console.error(`[DEBUG] loginToJournal: tenant="${tenant}", redirect chain ended with status=${currentResponse.status}`);
     // 5. WS-Federation loop
     const finalLanding = await handleFederation(client, currentResponse);
+    console.error(`[DEBUG] loginToJournal: finalLanding url="${finalLanding.config.url}" status=${finalLanding.status}`);
     const session = extractJournalSession(client, tenant, finalLanding);
     // 6. Cache and return
     sessionCache[cacheKey] = session;

@@ -1,0 +1,28 @@
+{
+  "name": "edu-vulcan-mcp",
+  "version": "1.0.0",
+  "description": "Lokalny serwer MCP łączący się z dziennikiem EduVulkan. Pozwala na dostęp do ocen, wiadomości i zadań.",
+  "mcpServers": {
+    "edu-vulcan-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "github:budzikt/edu-vulcan-mcp"
+      ]
+    }
+  },
+  "settings": [
+    {
+      "name": "VULCAN_ALIAS",
+      "description": "Twój alias do logowania w systemie EduVulcan",
+      "envVar": "VULCAN_ALIAS",
+      "sensitive": false
+    },
+    {
+      "name": "VULCAN_PASSWORD",
+      "description": "Twoje hasło do systemu EduVulcan",
+      "envVar": "VULCAN_PASSWORD",
+      "sensitive": true
+    }
+  ]
+}

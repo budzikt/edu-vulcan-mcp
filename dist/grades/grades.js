@@ -8,6 +8,7 @@ exports.getExams = getExams;
  */
 async function getGradingPeriods(session, idDziennik) {
     const url = `${session.baseUrl}/api/OkresyKlasyfikacyjne?key=${session.appKey}&idDziennik=${idDziennik}`;
+    console.error(`[DEBUG] getGradingPeriods: GET ${url}`);
     const response = await session.client.get(url, {
         headers: {
             'Referer': `${session.baseUrl}/App/${session.appKey}/oceny`
@@ -21,6 +22,7 @@ async function getGradingPeriods(session, idDziennik) {
  */
 async function getGrades(session, idOkres) {
     const url = `${session.baseUrl}/api/Oceny?key=${session.appKey}&idOkresKlasyfikacyjny=${idOkres}`;
+    console.error(`[DEBUG] getGrades: GET ${url}`);
     const response = await session.client.get(url, {
         headers: {
             'Referer': `${session.baseUrl}/App/${session.appKey}/oceny`

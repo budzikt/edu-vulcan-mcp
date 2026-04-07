@@ -53,43 +53,43 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: "list_grades",
-        description: "List grades for a specific child or the primary account.",
+        description: "List grades for a specific child or the primary account. Returns subjects with partial grades, weighted averages, and period grades. If you don't know the student name, call list_journal_accounts first.",
         inputSchema: {
           type: "object",
           properties: {
             studentName: {
               type: "string",
-              description: "Optional name of the student to filter by.",
+              description: "Optional name of the student to filter by. Use the studentName field from list_journal_accounts (e.g. 'Anna Nowak'). Partial names are accepted.",
             },
           },
         },
       },
       {
         name: "list_mailboxes",
-        description: "List all mailboxes (skrzynki) available for the current account.",
+        description: "List all mailboxes (skrzynki) available for the current account. Returns globalKey needed for list_messages. If you don't know the student name, call list_journal_accounts first.",
         inputSchema: {
           type: "object",
           properties: {
             studentName: {
               type: "string",
-              description: "Optional name of the student to filter by.",
+              description: "Optional name of the student to filter by. Use the studentName field from list_journal_accounts (e.g. 'Anna Nowak'). Partial names are accepted.",
             },
           },
         },
       },
       {
         name: "list_messages",
-        description: "List recent messages from a specific mailbox.",
+        description: "List recent messages from a specific mailbox. Returns message list with apiGlobalKey needed for get_message_details. Typical workflow: list_journal_accounts → list_mailboxes → list_messages.",
         inputSchema: {
           type: "object",
           properties: {
             mailboxGlobalKey: {
               type: "string",
-              description: "The globalKey of the mailbox. If not provided, the first one is used.",
+              description: "The globalKey of the mailbox from list_mailboxes. If not provided, the first mailbox for the student is used.",
             },
             studentName: {
               type: "string",
-              description: "Optional name of the student to filter by.",
+              description: "Optional name of the student to filter by. Use the studentName field from list_journal_accounts (e.g. 'Anna Nowak'). Partial names are accepted.",
             },
             count: {
               type: "number",
@@ -101,17 +101,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "get_message_details",
-        description: "Get detailed content of a specific message by its apiGlobalKey.",
+        description: "Get full content (treść) of a specific message by its apiGlobalKey. Use list_messages first to obtain apiGlobalKey values.",
         inputSchema: {
           type: "object",
           properties: {
             apiGlobalKey: {
               type: "string",
-              description: "The apiGlobalKey of the message.",
+              description: "The apiGlobalKey of the message, obtained from list_messages.",
             },
             studentName: {
               type: "string",
-              description: "Optional name of the student to filter by.",
+              description: "Optional name of the student to filter by. Use the studentName field from list_journal_accounts (e.g. 'Anna Nowak'). Partial names are accepted.",
             },
           },
           required: ["apiGlobalKey"],
@@ -119,18 +119,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "get_messages_details_bulk",
-        description: "Get detailed content for multiple messages in bulk by their apiGlobalKeys.",
+        description: "Get full content (treść) for multiple messages at once by their apiGlobalKeys. More efficient than calling get_message_details repeatedly. Use list_messages first to obtain apiGlobalKey values.",
         inputSchema: {
           type: "object",
           properties: {
             apiGlobalKeys: {
               type: "array",
               items: { type: "string" },
-              description: "Array of message apiGlobalKeys.",
+              description: "Array of apiGlobalKey values obtained from list_messages.",
             },
             studentName: {
               type: "string",
-              description: "Optional name of the student to filter by.",
+              description: "Optional name of the student to filter by. Use the studentName field from list_journal_accounts (e.g. 'Anna Nowak'). Partial names are accepted.",
             },
           },
           required: ["apiGlobalKeys"],
@@ -138,13 +138,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "list_assignments",
-        description: "List assessments and homework (Sprawdziany i Zadania Domowe) for a given date range.",
+        description: "List assessments and homework (Sprawdziany i Zadania Domowe) for a given date range. Returns assignment IDs needed for get_assignment_details. If you don't know the student name, call list_journal_accounts first.",
         inputSchema: {
           type: "object",
           properties: {
             studentName: {
               type: "string",
-              description: "Optional name of the student to filter by.",
+              description: "Optional name of the student to filter by. Use the studentName field from list_journal_accounts (e.g. 'Anna Nowak'). Partial names are accepted.",
             },
             startDate: {
               type: "string",
@@ -159,17 +159,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "get_assignment_details",
-        description: "Get detailed content of a specific homework assignment by its ID.",
+        description: "Get full description of a specific homework assignment or test by its numeric ID. Use list_assignments first to obtain IDs.",
         inputSchema: {
           type: "object",
           properties: {
             id: {
               type: "number",
-              description: "The numeric ID of the assignment.",
+              description: "The numeric ID of the assignment, obtained from list_assignments.",
             },
             studentName: {
               type: "string",
-              description: "Optional name of the student to filter by.",
+              description: "Optional name of the student to filter by. Use the studentName field from list_journal_accounts (e.g. 'Anna Nowak'). Partial names are accepted.",
             },
           },
           required: ["id"],
@@ -177,7 +177,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "list_journal_accounts",
-        description: "List all available student accounts (children) discovered after portal login.",
+        description: "List all children's accounts available on this portal. Call this first to discover studentName values required by other tools (list_grades, list_mailboxes, list_assignments, etc.). Returns name (full with school suffix) and studentName (clean, for use in other tools).",
         inputSchema: {
           type: "object",
           properties: {},
@@ -200,8 +200,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       
       // 1. Get context to find idDziennik
       const context = await getContext(session);
-      const studentEntry = context.uczniowie[0]; // For simplicity, take first one in this session
-      if (!studentEntry) throw new Error("No student entry found in context.");
+      const uczniowie: any[] = Array.isArray(context.uczniowie)
+        ? context.uczniowie
+        : Array.isArray(context)
+          ? context
+          : [];
+      if (uczniowie.length === 0) {
+        throw new Error("No student entries found in context. The API may have returned an unexpected structure.");
+      }
+      const studentEntry = studentName
+        ? uczniowie.find((e: any) => e.uczen?.toLowerCase().includes(studentName.toLowerCase()))
+        : uczniowie[0];
+      if (!studentEntry) {
+        const available = uczniowie.map((e: any) => e.uczen).filter(Boolean).join(', ');
+        throw new Error(`Student '${studentName}' not found. Available students: ${available || '(none)'}`);
+      }
       
       const ids = getDecodedIds(studentEntry.key);
       

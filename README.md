@@ -1,69 +1,122 @@
 # edu-vulcan-mcp
 
-MCP server for the Polish [EduVulcan](https://eduvulcan.pl) student education portal. Gives Claude access to grades, messages, and assignments from your child's school account.
+## tl;dr:  
+EjAj w Eduwulkanie  
 
-## Tools
+## dłuższe:
+Lokalny serwer MCP (stdio) łączący się z EduVulkan. Wspiera multitenancy, cache sesji, pobieranie wiadomości, ocen, zadań.
 
-| Tool | Description |
-|---|---|
-| `list_journal_accounts` | List all student accounts (children) available under your login |
-| `list_grades` | List grades for the current grading period |
-| `list_assignments` | List homework and assessments for a date range |
-| `get_assignment_details` | Get full details of a specific assignment |
-| `list_mailboxes` | List available message mailboxes |
-| `list_messages` | List recent messages from a mailbox |
-| `get_message_details` | Get full content of a specific message |
-| `get_messages_details_bulk` | Fetch details for multiple messages at once |
+## Demo (Zobacz, jak to wygląda)
 
-## Installation
+Przykładowe zapytania i zwroty z serwera MCP:
+### `Jakie moje dzieci chodzą tak ogólnie do szkoły, bo zapomniałem xD`  
+![img](./docs/name.png)
+### `Jakie oceny z edukacji wczesnoszkolej ma moja córka XYZ? zbierz średnie, najgorsze i najlepsze wyniki`  
+![img](./docs/grades.png)
+![img](./docs/grader-wrap.png)
+### `Podsumuj mi ostatnie 10 wiadomości z skrzynki odbiorczej mojej córki XYZ, jeśli coś wymaga akcji, dodaj to tabelki`  
+![img](./docs/mailbox-resp.png)
+![img](./docs/mailbox-wrap.png)
 
-### Via Claude Code plugin system
+## Jak włączyć?
+
+### Wymagania
+- Node.js v18+
+- Działające konto rodzica/opiekuna na [eduvulcan.pl](https://eduvulcan.pl)
+- Claude Code lub Gemini CLI
+
+---
+
+### Claude Code
+
+#### Opcja A – npx (najprostsza)
 
 ```bash
-claude plugin install github:budzikt/edu-vulcan-mcp
+claude mcp add edu-vulcan-mcp \
+  --env VULCAN_ALIAS=Twój_Alias \
+  --env VULCAN_PASSWORD=Twoje_Hasło \
+  -- npx -y github:budzikt/edu-vulcan-mcp
 ```
 
-After installation, open your Claude MCP settings and fill in the required credentials (see [Configuration](#configuration) below).
+#### Opcja B – przez Marketplace (zalecana)
 
-### Via marketplace
+1. **Dodaj marketplace** (tylko raz):
+    ```bash
+    claude plugin marketplace add budzikt/edu-vulcan-mcp
+    ```
+
+2. **Zainstaluj wtyczkę:**
+    ```bash
+    claude plugin install edu-vulcan-mcp@edu-vulcan-marketplace --scope local
+    ```
+
+3. **Podaj dane logowania** – Claude zapyta Cię o alias i hasło podczas włączania wtyczki. Hasło jest przechowywane bezpiecznie w systemowym pęku kluczy (Keychain / Credentials).
+
+Na koniec zrestartuj Claude'a – `edu-vulcan-mcp` powinien być podpięty: sprawdź komendą `/mcp`
+
+---
+
+### Gemini CLI
 
 ```bash
-claude plugin install https://raw.githubusercontent.com/budzikt/edu-vulcan-mcp/main/marketplace.json
+gemini extensions install https://github.com/budzikt/edu-vulcan-mcp
 ```
 
-### Manual (local development)
+Gemini CLI automatycznie zapyta Cię o `VULCAN_ALIAS` oraz `VULCAN_PASSWORD`, bezpiecznie je zapisze i skonfiguruje serwer MCP bez konieczności ręcznej edycji plików.
+
+---
+
+### Lokalnie (development)
 
 ```bash
 git clone https://github.com/budzikt/edu-vulcan-mcp.git
 cd edu-vulcan-mcp
 npm install
 cp .env.example .env
-# fill in your credentials in .env
+# Wpisz swoje dane do .env
 npm run mcp
 ```
 
-## Configuration
+---
 
-The server requires two environment variables. Set them in your Claude MCP server configuration after plugin installation:
+> **Ważne:** Twoje dane logowania **nie** trafiają do agenta — są używane wyłącznie w automatycznym procesie pozyskiwania sesji. To serwer MCP STDIO, więc nie jest dostępny przez sieć.
 
-| Variable | Description |
-|---|---|
-| `VULCAN_ALIAS` | Your EduVulcan portal login alias (the short identifier, not the full email) |
-| `VULCAN_PASSWORD` | Your EduVulcan portal password |
+## Co to potrafi?
 
-For local development, copy `.env.example` to `.env` and fill in the values.
+Narzędzia, o użycie których możesz poprosić asystenta [kod](./mcp-server.ts):
 
-> **Note:** Credentials are never stored by the MCP server — they are passed as environment variables at startup and used only to authenticate with the EduVulcan portal.
+*   **`list_journal_accounts`** – Sprawdź, jakie konta uczniów (dzieci) widzę pod Twoim loginem.
+*   **`list_grades`** – "Claude, jakie są oceny?" i już wszystko wiesz.
+*   **`list_assignments`** – Zobacz, co tam wpadło do kalendarza (sprawdziany, zadania).
+*   **`get_assignment_details`** – Jak chcesz wiedzieć dokładnie, co trzeba zrobić w tym zadaniu z plastyki.
+*   **`list_mailboxes`** – Zobacz, jakie masz skrzynki pocztowe.
+*   **`list_messages`** – Szybki podgląd ostatnich wiadomości od wychowawcy.
+*   **`get_message_details`** – Przeczytaj całą wiadomość bez wchodzenia na stronę.
+*   **`get_messages_details_bulk`** – Pobierz kilka wiadomości naraz, żeby nie marnować czasu.
 
-## Multi-child accounts
 
-If your account has multiple children (students), most tools accept an optional `studentName` parameter to target a specific child. Use `list_journal_accounts` first to see the available names.
+## Konfiguracja
 
-## Requirements
+Serwer wymaga dwóch zmiennych środowiskowych, które podajesz podczas instalacji:
 
-- Node.js >= 18
-- An active EduVulcan parent/guardian account at [eduvulcan.pl](https://eduvulcan.pl)
+*   **`VULCAN_ALIAS`** – To ten krótki identyfikator, którego używasz do logowania na stronie.
+*   **`VULCAN_PASSWORD`** – Twoje hasło. Przechowywane w systemowym pęku kluczy.
 
-## License
+Dane te nie są udostępniane do LLM — używane wyłącznie do uwierzytelniania przez tool call.
 
-ISC
+## Lista problemów
+
+### Obecne
+
+- cała masa xD
+- eduVulkan od czasu do czasu wymaga captcha - to prosta captcha "na czekania". Obecnie MCP nie wspiera zarządzania tym przypadkiem. Jeśli MCP nie będzie umiał się zalogować, wykonaj jakąś "ludzką" akcję na swoim koncie EduVulkan a captchaaut zniknie
+- czytanie wiadomości w trybie bulk niepotrzebnie eksponuje id wiadomości i zmusza LLM do zarządzania nimi
+
+### Fixed
+- cache sesji per dziecko
+- dzielony obiekt cookie-jar pomiedzy wywołaniami per to samo dziecko
+- wydzielony flow autoryzacyjny dla tooli
+
+## Licencja
+
+ISC – bierz i korzystaj!
