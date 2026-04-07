@@ -19,8 +19,8 @@
   "mcpServers": {
     "edu-vulcan-mcp": {
       "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "github:budzikt/edu-vulcan-mcp"],
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/dist/mcp-server.js"],
       "env": {
         "VULCAN_ALIAS": "${user_config.alias}",
         "VULCAN_PASSWORD": "${user_config.password}"
