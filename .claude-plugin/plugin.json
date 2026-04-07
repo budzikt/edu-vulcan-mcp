@@ -20,7 +20,7 @@
     "edu-vulcan-mcp": {
       "type": "stdio",
       "command": "node",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/dist/mcp-server.js"],
+      "args": ["${CLAUDE_PLUGIN_ROOT}/dist/bundle/index.js"],
       "env": {
         "VULCAN_ALIAS": "${user_config.alias}",
         "VULCAN_PASSWORD": "${user_config.password}"
