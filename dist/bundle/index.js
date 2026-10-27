@@ -58767,7 +58767,7 @@ async function loginToPortal(alias, password, returnUrl) {
     const formAction = $login('form').attr('action') || '/logowanie';
     const postUrl = formAction.startsWith('http') ? formAction : new URL(formAction, loginPage.config.url).toString();
     const loginPost = await client.post(postUrl, new URLSearchParams({
-        Alias: alias,
+        UserName: alias,
         Password: password,
         'captcha-response': '',
         __RequestVerificationToken: portalToken
@@ -58779,21 +58779,31 @@ async function loginToPortal(alias, password, returnUrl) {
     });
     const landingResponse = await follow(client, loginPost, postUrl);
     // Step 4: Account Extraction
-    const $home = cheerio.load(landingResponse.data);
     const accounts = [];
-    const accessRows = $home('.access-list .flex-row, .box-access-content .flex-row');
-    accessRows.each((_, element) => {
-        const $row = $home(element);
-        const $link = $row.find('a[href^="/dziennik?"]');
-        const name = $row.find('.connected-account-name').text().trim();
-        const url = $link.attr('href');
-        if (url) {
-            const studentName = name.replace(/\s*\([^)]+\)\s*$/, '').trim();
-            accounts.push({ name, studentName, journalUrl: `https://eduvulcan.pl${url}` });
-        }
-    });
+    const extractAccounts = (html) => {
+        const $page = cheerio.load(html);
+        // Current layout (.panel-access__row) with fallback to the legacy one
+        $page('.panel-access__row, .access-list .flex-row, .box-access-content .flex-row').each((_, element) => {
+            const $row = $page(element);
+            const $link = $row.find('a[href*="/dziennik?"]').first();
+            const name = $row.find('.panel-access__profile-name, .connected-account-name').first().text().trim();
+            const url = $link.attr('href');
+            if (url) {
+                const studentName = name.replace(/\s*\([^)]+\)\s*$/, '').trim();
+                accounts.push({ name, studentName, journalUrl: new URL(url, 'https://eduvulcan.pl').toString() });
+            }
+        });
+    };
+    extractAccounts(landingResponse.data);
+    // The accounts list is no longer on the home page, it lives under /dostep-do-dziennika/
+    if (accounts.length === 0 && !returnUrl) {
+        const accessPage = await follow(client, await client.get('https://eduvulcan.pl/dostep-do-dziennika/', {
+            headers: { 'Referer': 'https://eduvulcan.pl/' }
+        }));
+        extractAccounts(accessPage.data);
+    }
     if (accounts.length === 0) {
-        if (!landingResponse.data.includes('Wyloguj') && !returnUrl) {
+        if (!landingResponse.data.includes('Wylog') && !returnUrl) {
             throw new Error('Login failed: Redirected but no active session found.');
         }
     }
